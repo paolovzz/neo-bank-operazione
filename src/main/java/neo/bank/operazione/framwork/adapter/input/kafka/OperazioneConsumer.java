@@ -15,41 +15,33 @@ import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
-import neo.bank.operazione.application.OperazioneUseCase;
-import neo.bank.operazione.application.ports.input.commands.AvviaOperazioneCmd;
-import neo.bank.operazione.domain.models.vo.Iban;
+import neo.bank.operazione.application.TransazioneProjUseCase;
+import neo.bank.operazione.application.ports.input.commands.AggiornaProiezioneCmd;
+import neo.bank.operazione.domain.models.vo.IdOperazione;
 
 @ApplicationScoped
 @Slf4j
-public class ContoCorrenteConsumer {
+public class OperazioneConsumer {
 
     @Inject
-    private ObjectMapper mapper;
+    private TransazioneProjUseCase app;
 
-    @Inject
-    private OperazioneUseCase app;
+    private static final String EVENT_OWNER = "OPERAZIONE";
+    private static final String OPERAZIONE_CONCLUSA_EVENT_NAME = "OperazioneConclusa";
 
-    private static final String EVENT_OWNER = "CONTO_CORRENTE";
-    private static final String BONIFICO_PREDISPOSTO_EVENT_NAME = "BonificoPredisposto";
-
-    @Incoming("conto-corrente-notifications")
+    @Incoming("operazione-2-notifications")
     @Blocking
     public CompletionStage<Void> consume(Message<String> msg) {
         var metadata = msg.getMetadata(IncomingKafkaRecordMetadata.class).orElseThrow();
         String eventType = new String(metadata.getHeaders().lastHeader("eventType").value(), StandardCharsets.UTF_8);
         String aggregateName = new String(metadata.getHeaders().lastHeader("aggregateName").value(),
                 StandardCharsets.UTF_8);
-        String payload = msg.getPayload();
         log.info("INCOMING:\n- EventType => {}\n- AggregateName => {}", eventType, aggregateName);
         if (aggregateName.equals(EVENT_OWNER)) {
-            JsonNode json = convertToJsonNode(payload);
+            String aggregateId = (String) metadata.getKey();
             switch (eventType) {
-                case BONIFICO_PREDISPOSTO_EVENT_NAME:{
-                    String ibanMittente = json.get("ibanMittente").asText();
-                    String ibanDestinatario = json.get("ibanDestinatario").asText();
-                    String causale = json.get("causale").asText();
-                    double importo =  Math.abs(json.get("importo").asDouble());
-                    app.avviaOperazione( new AvviaOperazioneCmd(new Iban(ibanMittente), new Iban(ibanDestinatario), causale, importo));
+                case OPERAZIONE_CONCLUSA_EVENT_NAME:{
+                    app.aggiornaProiezione( new AggiornaProiezioneCmd(new IdOperazione(aggregateId)));
                     break;
                 }
                 default:
@@ -58,13 +50,5 @@ public class ContoCorrenteConsumer {
             }
         }
         return msg.ack();
-    }
-
-    private JsonNode convertToJsonNode(String payload) {
-        try {
-            return mapper.readTree(payload);
-        } catch (JsonProcessingException e) {
-            throw new RuntimeException("Errore durante la conversione json del messaggio kafka", e);
-        }
     }
 }
