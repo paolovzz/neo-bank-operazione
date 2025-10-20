@@ -13,6 +13,6 @@ public interface TransazioneProjectionRepositoryPort {
     
     public void salva(Operazione operazione);
     public TransazioneView findById(IdTransazione idTransazione);
-    List<TransazioneView> findBy(Iban iban, DataCreazione dataCreazioneInf, DataCreazione dataCreazioneSup, TipologiaFlusso tipologiaFlusso);
     public double calcolaTotaleBonificiUscita(Iban iban, DataCreazione dataInf, DataCreazione dataSup);
+    public List<TransazioneView> recuperaTransazioni(Iban iban, DataCreazione dataInf, DataCreazione dataSup, double importoMin, double importoMax, TipologiaFlusso tipologiaFlusso, int numeroPagina, int dimensionePagina);
 }

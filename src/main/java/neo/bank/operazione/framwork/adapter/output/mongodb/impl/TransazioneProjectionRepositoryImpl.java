@@ -7,15 +7,14 @@ import java.util.List;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
-import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
 
 import io.quarkus.mongodb.panache.PanacheMongoRepositoryBase;
+import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import neo.bank.operazione.application.exceptions.TransazioneNonTrovataException;
 import neo.bank.operazione.application.ports.output.TransazioneProjectionRepositoryPort;
@@ -64,24 +63,6 @@ public class TransazioneProjectionRepositoryImpl implements PanacheMongoReposito
                 entity.getTipologiaFlusso());
 
     }
-    
-
-    public List<TransazioneView> findBy(Iban iban, DataCreazione dataCreazioneInf, DataCreazione dataCreazioneSup, TipologiaFlusso tipologiaFlusso) {
-        
-        return find("iban = ?1 and dataCreazione >= ?2 and dataCreazione <= ?3 and tipologiaFlusso = ?4",
-                iban.codice(),
-                dataCreazioneInf.dataOra(),
-                dataCreazioneSup.dataOra(),
-                tipologiaFlusso
-        ).list().stream().map(entity ->  new TransazioneView(
-                entity.getIdTransazione(), 
-                entity.getIdOperazione(), 
-                entity.getImporto(),
-                entity.getIban(), 
-                entity.getDataCreazione(), 
-                entity.getCausale(), 
-                entity.getTipologiaFlusso())).toList();
-    }
 
     @Override
     public double calcolaTotaleBonificiUscita(Iban iban, DataCreazione dataInf, DataCreazione dataSup) {
@@ -112,4 +93,24 @@ public class TransazioneProjectionRepositoryImpl implements PanacheMongoReposito
         return mongoDatabase()
             .getCollection("transazioni-projection");
     }
+
+    @Override
+    public List<TransazioneView> recuperaTransazioni(Iban iban, DataCreazione dataInf, DataCreazione dataSup,
+            double importoMin, double importoMax, TipologiaFlusso tipologiaFlusso, int numeroPagina, int dimensionePagina) {
+
+           var query = find(
+            "iban = ?1 and dataCreazione >= ?2 and dataCreazione <= ?3 and importo >= ?4 and importo <= ?5 and tipologiaFlusso = ?6",
+            iban,
+            dataInf,
+            dataSup,
+            importoMin,
+            importoMax,
+            tipologiaFlusso
+        );
+
+        return query
+                .page(Page.of(numeroPagina, dimensionePagina))
+                .list().stream().map(e -> new TransazioneView(e.getIdTransazione(), e.getIdOperazione(), e.getImporto(), e.getIban(), e.getDataCreazione(), e.getCausale(), e.getTipologiaFlusso())).toList();
+    }
+
 }
