@@ -6,10 +6,6 @@ import java.util.concurrent.CompletionStage;
 import org.eclipse.microprofile.reactive.messaging.Incoming;
 import org.eclipse.microprofile.reactive.messaging.Message;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
 import io.smallrye.common.annotation.Blocking;
 import io.smallrye.reactive.messaging.kafka.api.IncomingKafkaRecordMetadata;
 import jakarta.enterprise.context.ApplicationScoped;

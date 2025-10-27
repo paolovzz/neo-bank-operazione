@@ -32,7 +32,8 @@ public class Operazione extends AggregateRoot<Operazione> implements Applier  {
     private DataCreazione dataCreazione;
     private String causale;
     private double importo;
-    private Transazione[] transazioni = new Transazione[2];
+    private Transazione transazioneIn;
+    private Transazione transazioneOut;
     private StatoOperazione stato;
 
 
@@ -44,7 +45,7 @@ public class Operazione extends AggregateRoot<Operazione> implements Applier  {
         DataCreazione dataCreazione = new DataCreazione(LocalDateTime.now(ZoneOffset.UTC));
         Transazione out = new Transazione(generatoreIdTransazioneService.genera(), ibanMittente, TipologiaFlusso.ADDEBITO);
         Transazione in = new Transazione(generatoreIdTransazioneService.genera(), ibanDestinatario, TipologiaFlusso.ACCREDITO);
-        operazione.events(new OperazioneAvviata(idOperazione, dataCreazione, causale, Math.abs(importo),new Transazione[]{in, out}));
+        operazione.events(new OperazioneAvviata(idOperazione, dataCreazione, causale, Math.abs(importo),in, out));
         return operazione;
     }
 
@@ -59,7 +60,8 @@ public class Operazione extends AggregateRoot<Operazione> implements Applier  {
     private void apply(OperazioneAvviata event) {
         this.idOperazione = event.idOperazione();
         this.dataCreazione = event.dataCreazione();
-        transazioni = event.transazioni();
+        transazioneIn = event.transazioneIn();
+        transazioneOut = event.transazioneOut();
         this.stato = StatoOperazione.AVVIATA;
         this.importo = event.importo();
         this.causale = event.causale();

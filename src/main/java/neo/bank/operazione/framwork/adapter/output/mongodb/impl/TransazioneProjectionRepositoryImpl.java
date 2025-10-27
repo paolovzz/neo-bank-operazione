@@ -39,8 +39,9 @@ public class TransazioneProjectionRepositoryImpl implements PanacheMongoReposito
         double importo = operazione.getImporto();
         String causale = operazione.getCausale();
         LocalDateTime dataCreazione = operazione.getDataCreazione().dataOra();
-        Transazione transazioneACC = Arrays.stream(operazione.getTransazioni()).filter( e -> e.getTipologiaFlusso().equals(TipologiaFlusso.ACCREDITO)).findFirst().get();
-        Transazione transazioneDEB = Arrays.stream(operazione.getTransazioni()).filter( e -> e.getTipologiaFlusso().equals(TipologiaFlusso.ADDEBITO)).findFirst().get();
+        Transazione transazioneACC = operazione.getTransazioneIn();
+        Transazione transazioneDEB = operazione.getTransazioneOut();
+        
         TransazioneProjectionEntity accredito = new TransazioneProjectionEntity(transazioneACC.getIdTransazione().id(), idOperazione, importo, transazioneACC.getIban().codice(), dataCreazione, causale, transazioneACC.getTipologiaFlusso());
         TransazioneProjectionEntity addebito = new TransazioneProjectionEntity(transazioneDEB.getIdTransazione().id(), idOperazione, importo, transazioneDEB.getIban().codice(), dataCreazione, causale, transazioneDEB.getTipologiaFlusso());
         persist(accredito, addebito);

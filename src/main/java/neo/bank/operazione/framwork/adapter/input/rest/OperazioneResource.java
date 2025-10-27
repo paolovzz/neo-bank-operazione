@@ -1,7 +1,5 @@
 package neo.bank.operazione.framwork.adapter.input.rest;
 
-import java.util.Arrays;
-
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -15,7 +13,6 @@ import neo.bank.operazione.application.TransazioneProjUseCase;
 import neo.bank.operazione.application.ports.input.commands.RecuperaDettaglioOperazioneCmd;
 import neo.bank.operazione.domain.models.aggregates.Operazione;
 import neo.bank.operazione.domain.models.entities.Transazione;
-import neo.bank.operazione.domain.models.enums.TipologiaFlusso;
 import neo.bank.operazione.domain.models.vo.IdOperazione;
 import neo.bank.operazione.framwork.adapter.input.rest.response.DettaglioOperazioneResponse;
 import neo.bank.operazione.framwork.adapter.input.rest.response.TransazioneInfoResponse;
@@ -38,9 +35,9 @@ public class OperazioneResource {
 
         Operazione operazione = operazioneUseCase.recuperaDaId(new RecuperaDettaglioOperazioneCmd(new IdOperazione(idOperazione)));
         
-        Transazione trAcc = Arrays.stream(operazione.getTransazioni()).filter(e -> TipologiaFlusso.ACCREDITO.equals(e.getTipologiaFlusso())).findFirst().get();
+        Transazione trAcc = operazione.getTransazioneIn();
         TransazioneInfoResponse transazioneInfoAcc = new TransazioneInfoResponse(trAcc.getIdTransazione().id(), operazione.getIdOperazione().id(), operazione.getImporto(), trAcc.getIban().codice(), operazione.getDataCreazione().dataOra(), operazione.getCausale(), trAcc.getTipologiaFlusso());
-        Transazione trAdd= Arrays.stream(operazione.getTransazioni()).filter(e -> TipologiaFlusso.ADDEBITO.equals(e.getTipologiaFlusso())).findFirst().get();
+        Transazione trAdd= operazione.getTransazioneOut();
         TransazioneInfoResponse transazioneInfoAddebito = new TransazioneInfoResponse(trAdd.getIdTransazione().id(), operazione.getIdOperazione().id(), operazione.getImporto(), trAdd.getIban().codice(), operazione.getDataCreazione().dataOra(), operazione.getCausale(), trAdd.getTipologiaFlusso());
         DettaglioOperazioneResponse res = new DettaglioOperazioneResponse(transazioneInfoAcc, transazioneInfoAddebito);
         

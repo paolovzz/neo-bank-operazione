@@ -9,7 +9,8 @@ public record OperazioneAvviata(
         DataCreazione dataCreazione, 
         String causale,
         double importo,
-        Transazione[] transazioni) implements EventPayload {
+        Transazione transazioneIn,
+        Transazione transazioneOut) implements EventPayload {
 
     @Override
     public String eventType() {

@@ -4,7 +4,7 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import lombok.Value;
-import neo.bank.operazione.framwork.adapter.output.kafka.integration_events.dto.DTOTransazione;
+import neo.bank.operazione.domain.models.entities.Transazione;
 
 @Value
 public class IEOperazioneAvviata implements Serializable {
@@ -12,5 +12,6 @@ public class IEOperazioneAvviata implements Serializable {
     private LocalDateTime dataCreazione;
     private String causale;
     private double importo;
-    private DTOTransazione[] transazioni;
+    private Transazione transazioneIn;
+    private Transazione transazioneOut;
 }
