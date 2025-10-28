@@ -1,7 +1,12 @@
 package neo.bank.operazione.framwork.adapter.output.mongodb.impl;
 
+import static com.mongodb.client.model.Filters.and;
+import static com.mongodb.client.model.Filters.eq;
+import static com.mongodb.client.model.Filters.gte;
+import static com.mongodb.client.model.Filters.lte;
+
 import java.time.LocalDateTime;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.bson.Document;
@@ -11,9 +16,9 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.model.Accumulators;
 import com.mongodb.client.model.Aggregates;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Sorts;
 
 import io.quarkus.mongodb.panache.PanacheMongoRepositoryBase;
-import io.quarkus.panache.common.Page;
 import jakarta.enterprise.context.ApplicationScoped;
 import lombok.extern.slf4j.Slf4j;
 import neo.bank.operazione.application.exceptions.TransazioneNonTrovataException;
@@ -25,6 +30,7 @@ import neo.bank.operazione.domain.models.enums.TipologiaFlusso;
 import neo.bank.operazione.domain.models.vo.DataCreazione;
 import neo.bank.operazione.domain.models.vo.Iban;
 import neo.bank.operazione.domain.models.vo.IdTransazione;
+import neo.bank.operazione.domain.models.vo.RispostaPaginata;
 import neo.bank.operazione.framwork.adapter.output.mongodb.entities.TransazioneProjectionEntity;
 
 @ApplicationScoped
@@ -95,23 +101,51 @@ public class TransazioneProjectionRepositoryImpl implements PanacheMongoReposito
             .getCollection("transazioni-projection");
     }
 
-    @Override
-    public List<TransazioneView> recuperaTransazioni(Iban iban, DataCreazione dataInf, DataCreazione dataSup,
-            double importoMin, double importoMax, TipologiaFlusso tipologiaFlusso, int numeroPagina, int dimensionePagina) {
+   @Override
+    public RispostaPaginata<TransazioneView> recuperaTransazioni(
+            Iban iban, DataCreazione dataInf, DataCreazione dataSup, Double importoMin, Double importoMax, TipologiaFlusso tipologiaFlusso, int numeroPagina, int dimensionePagina) {
 
-           var query = find(
-            "iban = ?1 and dataCreazione >= ?2 and dataCreazione <= ?3 and importo >= ?4 and importo <= ?5 and tipologiaFlusso = ?6",
-            iban,
-            dataInf,
-            dataSup,
-            importoMin,
-            importoMax,
-            tipologiaFlusso
-        );
+        List<Bson> filtri = new ArrayList<>();
+        filtri.add(eq("iban", iban.codice()));
 
-        return query
-                .page(Page.of(numeroPagina, dimensionePagina))
-                .list().stream().map(e -> new TransazioneView(e.getIdTransazione(), e.getIdOperazione(), e.getImporto(), e.getIban(), e.getDataCreazione(), e.getCausale(), e.getTipologiaFlusso())).toList();
+        if (dataInf != null) filtri.add(gte("dataCreazione", dataInf.dataOra()));
+        if (dataSup != null) filtri.add(lte("dataCreazione", dataSup.dataOra()));
+        if (importoMin != null) filtri.add(gte("importo", importoMin));
+        if (importoMax != null) filtri.add(lte("importo", importoMax));
+        if (tipologiaFlusso != null) filtri.add(eq("tipologiaFlusso", tipologiaFlusso.name()));
+
+        Bson filtroFinale = and(filtri);
+        
+        long totRisultati = mongoCollection().countDocuments(filtroFinale);
+        List<TransazioneProjectionEntity> transazioni = mongoCollection()
+            .find(filtroFinale)
+            .sort(Sorts.descending("dataCreazione"))
+            .skip(numeroPagina * dimensionePagina)
+            .limit(dimensionePagina)
+            .into(new ArrayList<>());
+        
+        return new RispostaPaginata<>(transazioni.stream()
+            .map(e -> new TransazioneView(
+                e.getIdTransazione(),
+                e.getIdOperazione(),
+                e.getImporto(),
+                e.getIban(),
+                e.getDataCreazione(),
+                e.getCausale(),
+                e.getTipologiaFlusso()))
+            .toList(), numeroPagina, dimensionePagina, totRisultati);
+
+
+        // return transazioni.stream()
+        //     .map(e -> new TransazioneView(
+        //         e.getIdTransazione(),
+        //         e.getIdOperazione(),
+        //         e.getImporto(),
+        //         e.getIban(),
+        //         e.getDataCreazione(),
+        //         e.getCausale(),
+        //         e.getTipologiaFlusso()))
+        //     .toList();
     }
 
 }
